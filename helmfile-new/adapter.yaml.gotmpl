@@ -1,0 +1,37 @@
+{{- /* 1. Safely extract the dictionaries */ -}}
+{{- $envMap := get .Values "envMap" | default dict -}}
+{{- $secretEnvMap := get .Values "secretEnvMap" | default dict -}}
+
+{{- /* 2. Process envMap */ -}}
+{{- if $envMap }}
+extraEnvs:
+{{- range $key, $val := $envMap }}
+  {{- /* Create an empty item starting with the name */ -}}
+  {{- $item := dict "name" $key -}}
+
+  {{- /* If the value is a complex dictionary (like digital certificates / valueFrom), merge it in */ -}}
+  {{- if kindIs "map" $val -}}
+    {{- $_ := merge $item $val -}}
+  {{- /* Otherwise, force it to a string and set it as 'value' */ -}}
+  {{- else -}}
+    {{- $_ := set $item "value" ($val | toString) -}}
+  {{- end -}}
+
+  {{- /* Output the single item as a YAML list element with perfect indentation */ -}}
+{{- list $item | toYaml | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{- /* 3. Process secretEnvMap */ -}}
+{{- if $secretEnvMap }}
+extraSecretEnvs:
+{{- range $key, $val := $secretEnvMap }}
+  {{- $item := dict "name" $key -}}
+  {{- if kindIs "map" $val -}}
+    {{- $_ := merge $item $val -}}
+  {{- else -}}
+    {{- $_ := set $item "value" ($val | toString) -}}
+  {{- end -}}
+{{- list $item | toYaml | nindent 2 }}
+{{- end }}
+{{- end }}
